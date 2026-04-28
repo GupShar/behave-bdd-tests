@@ -8,9 +8,6 @@ pipeline {
     }
 
     environment {
-        // Run "which python3" in your Mac Terminal to confirm your path
-        // Apple Silicon (M1/M2/M3): /opt/homebrew/bin/python3
-        // Intel Mac: /usr/local/bin/python3
         PYTHON      = '/opt/homebrew/bin/python3'
         VENV_DIR    = 'venv'
         REPORTS_DIR = 'reports'
@@ -21,34 +18,25 @@ pipeline {
 
         stage('Build Info') {
             steps {
-                echo "Job       : ${env.JOB_NAME}"
-                echo "Build No  : ${env.BUILD_NUMBER}"
-                echo "Branch    : ${env.GIT_BRANCH}"
-                echo "Python    : ${env.PYTHON}"
+                echo "Job    : ${env.JOB_NAME}"
+                echo "Build  : ${env.BUILD_NUMBER}"
             }
         }
 
         stage('Checkout') {
             steps {
                 checkout scm
-                echo "Code checked out from GitHub"
+                echo "Code checked out"
             }
         }
 
         stage('Setup Environment') {
             steps {
                 sh '''
-                    echo "Python version:"
                     ${PYTHON} --version
-
-                    echo "Creating virtual environment..."
                     ${PYTHON} -m venv ${VENV_DIR}
-
-                    echo "Installing dependencies..."
                     ${VENV_DIR}/bin/pip install --upgrade pip --quiet
                     ${VENV_DIR}/bin/pip install -r requirements.txt --quiet
-
-                    echo "Installed packages:"
                     ${VENV_DIR}/bin/pip list
                 '''
             }
@@ -58,7 +46,6 @@ pipeline {
             steps {
                 sh '''
                     mkdir -p ${REPORTS_DIR}
-
                     ${VENV_DIR}/bin/behave \
                         --no-capture \
                         --format pretty \
@@ -69,7 +56,6 @@ pipeline {
             }
             post {
                 failure {
-                    echo "Some tests failed - marking build UNSTABLE"
                     unstable('Test failures detected')
                 }
             }
@@ -86,7 +72,7 @@ pipeline {
                     reportName           : 'Behave Test Report',
                     reportTitles         : 'BDD Test Results'
                 ])
-                echo "HTML report published - check left sidebar"
+                echo "Report published"
             }
         }
     }
@@ -99,10 +85,10 @@ pipeline {
             echo "All tests passed!"
         }
         unstable {
-            echo "UNSTABLE - some tests failed. Check the Behave Test Report."
+            echo "Some tests failed. Check the Behave Test Report."
         }
         failure {
-            echo "Pipeline FAILED - check Python path, Chrome, GitHub access."
+            echo "Pipeline FAILED. Check Python path and Chrome."
         }
     }
 }
