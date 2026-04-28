@@ -50,7 +50,7 @@ pipeline {
                         --no-capture \
                         --format pretty \
                         --format json --outfile ${REPORTS_DIR}/behave-report.json \
-                        --format html --outfile ${REPORTS_DIR}/behave-report.html \
+                        --format behave_html_formatter:HTMLFormatter --outfile ${REPORTS_DIR}/behave-report.html \
                         features/
                 '''
             }
