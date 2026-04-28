@@ -1,75 +1,59 @@
-// Jenkinsfile
-// Behave + Selenium BDD Pipeline
-// Triggers: GitHub webhook (every commit) + daily schedule
-// Reports:  HTML report published in Jenkins UI
-
 pipeline {
 
     agent any
 
-    // ── Triggers ──────────────────────────────────────────────────────────
     triggers {
-        githubPush()           // fires on every GitHub push/commit
-        cron('0 0 * * *')      // fires every night at midnight
-        // cron('0 8 * * 1-5') // alternative: weekdays at 8 AM
+        githubPush()
+        cron('0 0 * * *')
     }
 
-    // ── Environment variables ──────────────────────────────────────────────
     environment {
-        // ✅ Full path to python3 — Jenkins Tools has no Python option, so we use full path
-        // Run `which python3` in your Mac Terminal to confirm which one to use:
-        // Apple Silicon (M1/M2/M3) Mac → /opt/homebrew/bin/python3
-        // Intel Mac                    → /usr/local/bin/python3
+        // Run "which python3" in your Mac Terminal to confirm your path
+        // Apple Silicon (M1/M2/M3): /opt/homebrew/bin/python3
+        // Intel Mac: /usr/local/bin/python3
         PYTHON      = '/opt/homebrew/bin/python3'
         VENV_DIR    = 'venv'
         REPORTS_DIR = 'reports'
-        CI          = 'true'   // tells environment.py to run Chrome headless
+        CI          = 'true'
     }
 
     stages {
 
-        // 1. Print build info
         stage('Build Info') {
             steps {
-                echo "============================================"
                 echo "Job       : ${env.JOB_NAME}"
-                echo "Build #   : ${env.BUILD_NUMBER}"
+                echo "Build No  : ${env.BUILD_NUMBER}"
                 echo "Branch    : ${env.GIT_BRANCH}"
-                echo "Triggered : ${currentBuild.getBuildCauses()[0].shortDescription}"
                 echo "Python    : ${env.PYTHON}"
-                echo "============================================"
             }
         }
 
-        // 2. Checkout from GitHub
         stage('Checkout') {
             steps {
                 checkout scm
-                echo "✅ Code checked out"
+                echo "Code checked out from GitHub"
             }
         }
 
-        // 3. Set up Python venv + install dependencies
         stage('Setup Environment') {
             steps {
                 sh '''
-                    echo "-- Python version --"
+                    echo "Python version:"
                     ${PYTHON} --version
 
-                    echo "-- Creating virtual environment --"
+                    echo "Creating virtual environment..."
                     ${PYTHON} -m venv ${VENV_DIR}
 
-                    echo "-- Installing dependencies --"
+                    echo "Installing dependencies..."
                     ${VENV_DIR}/bin/pip install --upgrade pip --quiet
                     ${VENV_DIR}/bin/pip install -r requirements.txt --quiet
 
-                    echo "-- Installed packages --"
+                    echo "Installed packages:"
                     ${VENV_DIR}/bin/pip list
                 '''
             }
         }
 
-        // 4. Run Behave BDD tests (headless Chrome via CI=true)
         stage('Run BDD Tests') {
             steps {
                 sh '''
@@ -85,13 +69,12 @@ pipeline {
             }
             post {
                 failure {
-                    echo "❌ Tests failed — marking UNSTABLE so report still publishes"
+                    echo "Some tests failed - marking build UNSTABLE"
                     unstable('Test failures detected')
                 }
             }
         }
 
-        // 5. Publish HTML report in Jenkins sidebar
         stage('Publish Report') {
             steps {
                 publishHTML(target: [
@@ -103,7 +86,7 @@ pipeline {
                     reportName           : 'Behave Test Report',
                     reportTitles         : 'BDD Test Results'
                 ])
-                echo "✅ Report published — see left sidebar"
+                echo "HTML report published - check left sidebar"
             }
         }
     }
@@ -113,13 +96,13 @@ pipeline {
             archiveArtifacts artifacts: 'reports/**/*', allowEmptyArchive: true
         }
         success {
-            echo "✅ All tests passed!"
+            echo "All tests passed!"
         }
         unstable {
-            echo "⚠️ UNSTABLE — some tests failed. Check the Behave Test Report."
+            echo "UNSTABLE - some tests failed. Check the Behave Test Report."
         }
         failure {
-            echo "❌ Pipeline FAILED — check Python path, Chrome, GitHub access."
+            echo "Pipeline FAILED - check Python path, Chrome, GitHub access."
         }
     }
 }
