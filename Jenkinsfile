@@ -8,7 +8,7 @@ pipeline {
     }
 
     environment {
-        PYTHON      = '/opt/homebrew/bin/python3'
+        PYTHON      = '/Library/Frameworks/Python.framework/Versions/3.13/bin/python3'
         VENV_DIR    = 'venv'
         REPORTS_DIR = 'reports'
         CI          = 'true'
